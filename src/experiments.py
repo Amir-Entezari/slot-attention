@@ -1,4 +1,7 @@
+import csv
+import json
 import os
+import subprocess
 
 import torch
 import torch.nn as nn
@@ -32,6 +35,46 @@ from .utils import (
     seed_everything,
 )
 
+def _get_git_commit():
+    try:
+        repo_root = os.path.dirname(
+            os.path.dirname(__file__)
+        )
+
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_root,
+            text=True,
+        ).strip()
+
+    except Exception:
+        return None
+
+
+def _append_history_row(
+    path,
+    row,
+):
+    file_exists = os.path.exists(path)
+
+    with open(
+        path,
+        "a",
+        newline="",
+        encoding="utf-8",
+    ) as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=list(row.keys()),
+        )
+
+        if (
+            not file_exists
+            or os.path.getsize(path) == 0
+        ):
+            writer.writeheader()
+
+        writer.writerow(row)
 
 def resolve_selection_metric(
     selection_metric,
@@ -207,7 +250,27 @@ def run_baseline_experiment(
         output_dir,
         exist_ok=True,
     )
+    history_path = os.path.join(
+        output_dir,
+        "history.csv",
+    )
 
+    metrics_path = os.path.join(
+        output_dir,
+        "metrics.json",
+    )
+
+    git_commit = _get_git_commit()
+
+
+    if not resume:
+        for path in [
+            history_path,
+            metrics_path,
+        ]:
+            if os.path.exists(path):
+                os.remove(path)
+                
     latest_checkpoint_path = (
         os.path.join(
             output_dir,
@@ -612,6 +675,26 @@ def run_baseline_experiment(
             in val_metrics.items()
         )
 
+
+        history_row = {
+            "epoch": epoch,
+            "train_loss": train_loss,
+            "train_top1": train_top1,
+            "val_loss": val_loss,
+        }
+
+        history_row.update(
+            {
+                f"val_{key}": value
+                for key, value
+                in val_metrics.items()
+            }
+        )
+
+        _append_history_row(
+            history_path,
+            history_row,
+        )
         print(
             f"epoch={epoch:03d} "
             f"train_loss="
@@ -769,7 +852,9 @@ def run_baseline_experiment(
     # ========================================================
     # Held-out test
     # ========================================================
-
+    test_loss = None
+    test_metrics = None
+    
     if evaluate_test:
 
         (
@@ -802,7 +887,68 @@ def run_baseline_experiment(
             "[TEST] skipped "
             "(validation-only experiment)"
         )
+    summary = {
+        "run_id": experiment_name,
+        "git_commit": git_commit,
 
+        "model_name": model_name,
+        "num_classes": num_classes,
+        "num_frames": num_frames,
+        "seed": seed,
+
+        "batch_size": batch_size,
+        "learning_rate": learning_rate,
+        "epochs": epochs,
+
+        "topk_values": topk_values,
+        "selection_metric": best_key,
+
+        "best_epoch": best_epoch,
+        "best_val": float(best_val),
+        "best_val_loss": float(
+            best_val_loss
+        ),
+        "best_val_metrics": {
+            key: float(value)
+            for key, value
+            in best_val_metrics.items()
+        },
+
+        "test_loss": (
+            None
+            if test_loss is None
+            else float(test_loss)
+        ),
+
+        "test_metrics": (
+            None
+            if test_metrics is None
+            else {
+                key: float(value)
+                for key, value
+                in test_metrics.items()
+            }
+        ),
+    }
+
+
+    with open(
+        metrics_path,
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(
+            summary,
+            f,
+            indent=2,
+        )
+
+
+    print(
+        "[ARTIFACTS]",
+        history_path,
+        metrics_path,
+    )
     return model
 
 
