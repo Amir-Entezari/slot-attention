@@ -4,11 +4,24 @@ import shutil
 import kagglehub
 
 
+def _dataset_handle(
+    username,
+    dataset_name="slot-attention-checkpoints",
+):
+    return f"{username}/{dataset_name}"
+
+
 def sync_from_kaggle(
     *,
-    handle,
+    username,
     local_root,
+    dataset_name="slot-attention-checkpoints",
 ):
+    handle = _dataset_handle(
+        username,
+        dataset_name,
+    )
+
     local_root = Path(local_root)
     local_root.mkdir(
         parents=True,
@@ -61,22 +74,26 @@ def sync_from_kaggle(
 
     print(
         f"[SYNC] Restored {copied} "
-        "missing files."
+        f"missing files from {handle}."
     )
 
 
 def backup_to_kaggle(
     *,
-    handle,
+    username,
     local_root,
     version_notes,
+    dataset_name="slot-attention-checkpoints",
 ):
-    local_root = Path(local_root)
+    handle = _dataset_handle(
+        username,
+        dataset_name,
+    )
 
-    # Merge old remote files first so uploading
-    # a new version does not delete older runs.
+    # Merge existing remote files first.
     sync_from_kaggle(
-        handle=handle,
+        username=username,
+        dataset_name=dataset_name,
         local_root=local_root,
     )
 
@@ -87,5 +104,5 @@ def backup_to_kaggle(
     )
 
     print(
-        "[BACKUP] Upload submitted."
+        f"[BACKUP] Uploaded to {handle}."
     )
