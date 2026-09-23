@@ -11,10 +11,7 @@ from .ssv2 import (
     uniform_frame_indices,
 )
 
-from .splits import (
-    create_class_split,
-    filter_classes,
-)
+from .splits import create_class_split
 
 from .classes import (
     SSV2_MANIPULATION_5,
