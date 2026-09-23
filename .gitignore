@@ -21,7 +21,6 @@ checkpoints/
 outputs/
 
 # Local data
-data/
 
 # IDE
 .vscode/
