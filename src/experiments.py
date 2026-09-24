@@ -147,6 +147,7 @@ def run_baseline_experiment(
     resume=True,
     save_every=1,
     evaluate_test=True,
+    processor_name=None,
     splits_dir,
     clips_dir,
     checkpoint_root="checkpoints",
@@ -224,11 +225,12 @@ def run_baseline_experiment(
         )
     )
 
-    processor_name = (
-        get_baseline_processor_name(
-            model_name
+    if processor_name is None:
+        processor_name = (
+            get_baseline_processor_name(
+                model_name
+            )
         )
-    )
 
     # ========================================================
     # Experiment / checkpoint paths
@@ -262,15 +264,6 @@ def run_baseline_experiment(
 
     git_commit = _get_git_commit()
 
-
-    if not resume:
-        for path in [
-            history_path,
-            metrics_path,
-        ]:
-            if os.path.exists(path):
-                os.remove(path)
-                
     latest_checkpoint_path = (
         os.path.join(
             output_dir,
@@ -284,6 +277,16 @@ def run_baseline_experiment(
             "best.pt",
         )
     )
+
+    if not resume:
+        for path in [
+            history_path,
+            metrics_path,
+            latest_checkpoint_path,
+            best_checkpoint_path,
+        ]:
+            if os.path.exists(path):
+                os.remove(path)
 
     print()
     print(
