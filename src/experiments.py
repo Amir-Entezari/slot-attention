@@ -148,6 +148,7 @@ def run_baseline_experiment(
     save_every=1,
     evaluate_test=True,
     processor_name=None,
+    multi_gpu=False,
     splits_dir,
     clips_dir,
     checkpoint_root="checkpoints",
@@ -367,6 +368,41 @@ def run_baseline_experiment(
         device
     )
 
+    if (
+        multi_gpu
+        and device.type == "cuda"
+        and torch.cuda.device_count() > 1
+    ):
+        model = nn.DataParallel(
+            model
+        )
+
+        print(
+            "Multi-GPU: DataParallel "
+            f"({torch.cuda.device_count()} GPUs)"
+        )
+
+    else:
+        print(
+            "Multi-GPU: disabled "
+            f"({torch.cuda.device_count()} GPU(s) available)"
+        )
+
+
+    checkpoint_model = (
+        model.module
+        if isinstance(
+            model,
+            nn.DataParallel,
+        )
+        else model
+    )
+
+
+    criterion = (
+        nn.CrossEntropyLoss()
+    )
+
     criterion = (
         nn.CrossEntropyLoss()
     )
@@ -458,7 +494,7 @@ def run_baseline_experiment(
             )
 
         load_checkpoint_model_state(
-            model,
+            checkpoint_model,
             checkpoint[
                 "model_state_dict"
             ],
@@ -620,7 +656,7 @@ def run_baseline_experiment(
 
                     "model_state_dict":
                         get_checkpoint_model_state(
-                            model,
+                            checkpoint_model,
                             model_name,
                         ),
 
@@ -727,7 +763,7 @@ def run_baseline_experiment(
 
                     "model_state_dict":
                         get_checkpoint_model_state(
-                            model,
+                            checkpoint_model,
                             model_name,
                         ),
 
@@ -793,7 +829,7 @@ def run_baseline_experiment(
         )
 
         load_checkpoint_model_state(
-            model,
+            checkpoint_model,
             best_checkpoint[
                 "model_state_dict"
             ],
@@ -977,6 +1013,7 @@ def run_slot_experiment(
     resume=True,
     save_every=1,
     evaluate_test=True,
+    multi_gpu=False,
     splits_dir,
     clips_dir,
     checkpoint_root="checkpoints",
