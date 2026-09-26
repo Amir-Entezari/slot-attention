@@ -190,7 +190,7 @@ def assignment_statistics(
     # ========================================================
 
     usage_entropy_raw = -(
-        usage
+        soft_usage
         * usage_safe.log()
     ).sum(dim=1)
 
