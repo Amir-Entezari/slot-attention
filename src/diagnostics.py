@@ -191,7 +191,7 @@ def assignment_statistics(
 
     usage_entropy_raw = -(
         soft_usage
-        * usage_safe.log()
+        * soft_usage_safe.log()
     ).sum(dim=1)
 
 
@@ -207,7 +207,7 @@ def assignment_statistics(
         )
 
     effective_slots = (
-        usage_entropy.exp()
+        usage_entropy_raw.exp()
     )
 
     soft_usage_min = (
